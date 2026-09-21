@@ -34,11 +34,9 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
       with:
-        api-level: 34
-        build-tools: 34.0.0
-        ndk: false
-        cmake: false
-        accept-license: true
+        cmdline-tools-version: '16.0'
+        packages: platforms;android-34,build-tools;34.0.0,platform-tools
+        accept-android-sdk-licenses: true
 
     - name: Add Android platform
       run: npx cap add android
@@ -50,7 +48,6 @@ jobs:
       run: cd android && ./gradlew assembleDebug --no-daemon --stacktrace
       env:
         ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-        JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
