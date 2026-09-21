@@ -44,7 +44,10 @@ jobs:
       - name: Remove existing Android folder (clean build)
         run: rm -rf android
 
-      - name: Add Android platform (Capacitor)
+      - name: Use Capacitor 6 (compatible with Kotlin 1.8.x)
+        run: npm install @capacitor/cli@6 @capacitor/core@6 @capacitor/android@6
+
+      - name: Add Android platform (Capacitor 6)
         run: npx cap add android
 
       - name: Sync web assets into Android project
@@ -61,18 +64,9 @@ jobs:
         working-directory: android
         run: chmod +x gradlew
 
-      - name: Fix Kotlin duplicate classes in gradle.properties
+      - name: Build debug APK
         working-directory: android
-        run: |
-          echo "kotlin.code.style=official" >> gradle.properties
-          echo "android.enableJetifier=false" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> gradle.properties
-
-      - name: Build debug APK with duplicate classes handling
-        working-directory: android
-        run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Locate APK
         run: find android/app/build/outputs/apk -name "*.apk"
