@@ -52,7 +52,7 @@ export async function getBulkElevations(coords: Coordinate[]): Promise<(Elevatio
       return coords.map(() => null);
     }
     
-    return data.results.map((result: { latitude: number; longitude: number; elevation: number }, index: number) => ({
+    return data.results.map((result: { latitude: number; longitude: number; elevation: number }) => ({
       latitude: result.latitude,
       longitude: result.longitude,
       elevation: result.elevation,

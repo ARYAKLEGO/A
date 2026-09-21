@@ -3,19 +3,8 @@ import L from 'leaflet';
 import type { Coordinate, MapMarker, MapType } from '../types';
 import { MAP_TYPES, MAP_ATTRIBUTIONS } from '../types';
 
-// Fix for Leaflet marker icons in React
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
 // Custom icon for numbered pins
-function createNumberedIcon(number: number): L.Icon {
+function createNumberedIcon(number: number): L.DivIcon {
   return L.divIcon({
     html: `<div style="background: #ff4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">${number}</div>`,
     className: 'numbered-marker',
@@ -68,15 +57,10 @@ export function useMap(initialMarkers: MapMarker[] = []): MapHookResult {
     updateTileLayer(map, mapType);
 
     // Handle map click
-    map.on('click', async (e) => {
-      const coord: Coordinate = { lat: e.latlng.lat, lng: e.latlng.lng };
-      // Click handler will be managed by parent component
-    });
+    // Click handler will be managed by parent component
 
     // Handle map move
-    map.on('move', () => {
-      // Update center if needed
-    });
+    // Update center if needed
 
     setMapInstance(map);
 

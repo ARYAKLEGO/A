@@ -1,4 +1,4 @@
-import type { MapMarker, GPXTrack } from '../types';
+import type { MapMarker } from '../types';
 
 /**
  * Generate GPX XML string from markers

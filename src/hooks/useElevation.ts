@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
 import type { MapMarker, ElevationStats } from '../types';
-import { getElevationWithRetry, formatElevation, metersToFeet } from '../lib/elevation';
+import { getElevationWithRetry, metersToFeet } from '../lib/elevation';
 import { reverseGeocode } from '../lib/geocoding';
 
 export interface ElevationHookResult {
   stats: ElevationStats;
-  fetchElevationForMarker: (marker: MapMarker, unit: 'meters' | 'feet') => Promise<MapMarker>;
-  fetchElevationForAllMarkers: (markers: MapMarker[], unit: 'meters' | 'feet') => Promise<MapMarker[]>;
-  calculateStats: (markers: MapMarker[], unit: 'meters' | 'feet') => ElevationStats;
+  fetchElevationForMarker: (marker: MapMarker) => Promise<MapMarker>;
+  fetchElevationForAllMarkers: (markers: MapMarker[]) => Promise<MapMarker[]>;
+  calculateStats: (markers: MapMarker[], unit?: 'meters' | 'feet') => ElevationStats;
 }
 
 export function useElevation(): ElevationHookResult {
-  const [stats, setStats] = useState<ElevationStats>({
+  const [stats, _setStats] = useState<ElevationStats>({
     min: null,
     max: null,
     avg: null,
@@ -21,8 +21,7 @@ export function useElevation(): ElevationHookResult {
   });
 
   const fetchElevationForMarker = useCallback(async (
-    marker: MapMarker,
-    unit: 'meters' | 'feet'
+    marker: MapMarker
   ): Promise<MapMarker> => {
     const elevation = await getElevationWithRetry(marker.position);
     const locationName = await reverseGeocode(marker.position);
@@ -30,21 +29,16 @@ export function useElevation(): ElevationHookResult {
     return {
       ...marker,
       elevation,
-      locationName,
+      locationName: locationName ?? undefined,
     };
   }, []);
 
   const fetchElevationForAllMarkers = useCallback(async (
-    markers: MapMarker[],
-    unit: 'meters' | 'feet'
+    markers: MapMarker[]
   ): Promise<MapMarker[]> => {
     const updatedMarkers = await Promise.all(
-      markers.map(marker => fetchElevationForMarker(marker, unit))
+      markers.map(marker => fetchElevationForMarker(marker))
     );
-
-    // Calculate and update stats
-    const newStats = calculateStats(updatedMarkers, unit);
-    setStats(newStats);
 
     return updatedMarkers;
   }, [fetchElevationForMarker]);

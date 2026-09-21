@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import L from 'leaflet';
-import type { MapMarker, Coordinate, MapSettings, ElevationStats, HistoryEntry } from './types';
+import type { MapMarker, Coordinate, HistoryEntry } from './types';
 import { useMap } from './hooks/useMap';
 import { useElevation } from './hooks/useElevation';
 import { useSettings } from './hooks/useSettings';
-import { getElevationWithRetry, formatElevation, metersToFeet } from './lib/elevation';
-import { searchLocation, reverseGeocode, debounce, getSimpleName } from './lib/geocoding';
-import { saveMarkers, loadMarkers, saveHistory, loadHistory, deleteHistoryEntry, generateId, clearMarkers } from './lib/storage';
-import { exportMarkersToGPX, getGPXStats, formatDistance } from './lib/gpx';
+import { metersToFeet } from './lib/elevation';
+import { searchLocation, debounce, getSimpleName } from './lib/geocoding';
+import { saveMarkers, loadMarkers, saveHistory, loadHistory, deleteHistoryEntry, generateId } from './lib/storage';
+import { exportMarkersToGPX } from './lib/gpx';
 
 // Icons as SVG strings
 const SearchIcon = () => (
@@ -22,12 +22,6 @@ const LocateIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
     <circle cx="12" cy="10" r="3" />
-  </svg>
-);
-
-const AddIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 5v14M5 12h14" />
   </svg>
 );
 
@@ -67,30 +61,6 @@ const DownloadIcon = () => (
 const CloseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M18 6L6 18M6 6l12 12" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const XIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 6L6 18M6 6l12 12" />
-  </svg>
-);
-
-const ChevronLeft = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>
-);
-
-const ChevronRight = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="9 18 15 12 9 6" />
   </svg>
 );
 
@@ -138,7 +108,6 @@ const ElevationProfile: React.FC<{ markers: MapMarker[]; unit: 'meters' | 'feet'
 
     // Scale factors
     const xScale = chartWidth / (validMarkers.length - 1);
-    const yScale = chartHeight / eleRange;
 
     // Draw grid lines
     ctx.strokeStyle = 'var(--border)';
@@ -166,9 +135,9 @@ const ElevationProfile: React.FC<{ markers: MapMarker[]; unit: 'meters' | 'feet'
     ctx.strokeStyle = 'var(--primary)';
     ctx.lineWidth = 2;
 
-    validMarkers.forEach((marker, index) => {
+    validMarkers.forEach((_marker, index) => {
       const x = padding.left + index * xScale;
-      const ele = unit === 'feet' ? metersToFeet(marker.elevation!) : marker.elevation!;
+      const ele = unit === 'feet' ? metersToFeet(validMarkers[index].elevation!) : validMarkers[index].elevation!;
       const y = padding.top + ((maxEle - ele) / eleRange) * chartHeight;
 
       if (index === 0) {
@@ -181,9 +150,9 @@ const ElevationProfile: React.FC<{ markers: MapMarker[]; unit: 'meters' | 'feet'
     ctx.stroke();
 
     // Draw points
-    validMarkers.forEach((marker, index) => {
+    validMarkers.forEach((_marker, index) => {
       const x = padding.left + index * xScale;
-      const ele = unit === 'feet' ? metersToFeet(marker.elevation!) : marker.elevation!;
+      const ele = unit === 'feet' ? metersToFeet(validMarkers[index].elevation!) : validMarkers[index].elevation!;
       const y = padding.top + ((maxEle - ele) / eleRange) * chartHeight;
 
       ctx.beginPath();
@@ -204,7 +173,7 @@ const ElevationProfile: React.FC<{ markers: MapMarker[]; unit: 'meters' | 'feet'
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
 
-    validMarkers.forEach((marker, index) => {
+    validMarkers.forEach((_marker, index) => {
       const x = padding.left + index * xScale;
       ctx.fillText(`${index + 1}`, x, height - 10);
     });
@@ -235,7 +204,7 @@ const ElevationProfile: React.FC<{ markers: MapMarker[]; unit: 'meters' | 'feet'
 
 const App: React.FC = () => {
   const { settings, toggleDarkMode, setMapType, setUnit } = useSettings();
-  const { stats, fetchElevationForMarker, calculateStats } = useElevation();
+  const { calculateStats } = useElevation();
   const { mapRef, mapInstance, markers, addMarker, removeMarker, clearAllMarkers, centerMap, changeMapType, fitToMarkers } = useMap();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -244,7 +213,6 @@ const App: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'markers' | 'profile' | 'stats'>('markers');
 
   // Apply dark mode to document
   useEffect(() => {
@@ -265,9 +233,7 @@ const App: React.FC = () => {
   // Save markers when they change
   useEffect(() => {
     saveMarkers(markers);
-    const newStats = calculateStats(markers, settings.unit);
-    // Update stats in state if needed
-  }, [markers, settings.unit]);
+  }, [markers]);
 
   // Load history
   useEffect(() => {
@@ -307,22 +273,7 @@ const App: React.FC = () => {
 
     const handleClick = async (e: L.LeafletMouseEvent) => {
       const coord: Coordinate = { lat: e.latlng.lat, lng: e.latlng.lng };
-      
-      // Add marker
-      const newMarker = await addMarker(coord);
-      if (newMarker) {
-        // Fetch elevation
-        const elevation = await getElevationWithRetry(coord);
-        const locationName = await reverseGeocode(coord);
-        
-        // Update marker with elevation and location
-        const updatedMarkers = markers.map(m =>
-          m.id === newMarker.id ? { ...m, elevation, locationName: getSimpleName(locationName || '') } : m
-        );
-        
-        // This will trigger re-render through state
-        // In a real implementation, we'd use a more sophisticated state management
-      }
+      await addMarker(coord);
     };
 
     mapInstance.on('click', handleClick);
@@ -330,7 +281,7 @@ const App: React.FC = () => {
     return () => {
       mapInstance.off('click', handleClick);
     };
-  }, [mapInstance, markers, addMarker]);
+  }, [mapInstance, addMarker]);
 
   const handleSearchSelect = useCallback(async (result: any) => {
     setSearchQuery('');
@@ -345,15 +296,7 @@ const App: React.FC = () => {
     centerMap(coord, 15);
     
     // Add marker
-    const newMarker = await addMarker(coord, getSimpleName(result.display_name));
-    if (newMarker) {
-      // Fetch elevation
-      const elevation = await getElevationWithRetry(coord);
-      const locationName = result.display_name;
-      
-      // Update marker
-      // This is handled by the useMap hook internally
-    }
+    await addMarker(coord, getSimpleName(result.display_name));
   }, [centerMap, addMarker]);
 
   const handleMyLocation = useCallback(() => {
@@ -432,15 +375,21 @@ const App: React.FC = () => {
     removeMarker(id);
   }, [removeMarker]);
 
-  const formatStatValue = useCallback((value: number | null, unit: string) => {
+  const formatStatValue = (value: number | null): string => {
     if (value === null) return 'N/A';
     const rounded = Math.round(value);
-    return `${rounded} ${unit}`;
-  }, []);
+    return `${rounded} ${settings.unit === 'feet' ? 'ft' : 'm'}`;
+  };
+
+  const formatElevation = (elevation: number | null): string => {
+    if (elevation === null) return 'Loading...';
+    const value = settings.unit === 'feet' ? metersToFeet(elevation) : elevation;
+    return `${Math.round(value)} ${settings.unit === 'feet' ? 'ft' : 'm'}`;
+  };
 
   // Calculate stats
-  const validMarkers = markers.filter(m => m.elevation !== null);
   const currentStats = calculateStats(markers, settings.unit);
+  const validMarkers = markers.filter(m => m.elevation !== null);
 
   return (
     <div className="app-container" data-theme={settings.darkMode ? 'dark' : 'light'}>
@@ -472,13 +421,15 @@ const App: React.FC = () => {
         {/* Search */}
         <div className="search-container">
           <div style={{ position: 'relative' }}>
-            <SearchIcon style={{ 
+            <div style={{ 
               position: 'absolute', 
               left: '12px', 
               top: '50%', 
               transform: 'translateY(-50%)',
               color: 'var(--text-muted)' 
-            }} />
+            }}>
+              <SearchIcon />
+            </div>
             <input
               type="text"
               className="search-input"
@@ -532,9 +483,7 @@ const App: React.FC = () => {
                 <div className="marker-info">
                   <div className="marker-label">{marker.label}</div>
                   <div className="marker-elevation">
-                    {marker.elevation !== null 
-                      ? formatElevation(marker.elevation, settings.unit)
-                      : 'Loading...'}
+                    {formatElevation(marker.elevation)}
                   </div>
                 </div>
                 <div className="marker-actions">
@@ -563,26 +512,26 @@ const App: React.FC = () => {
           <div className="stats-grid">
             <div className="stat-item">
               <div className="stat-label">Min</div>
-              <div className="stat-value">{formatStatValue(currentStats.min, settings.unit)}</div>
+              <div className="stat-value">{formatStatValue(currentStats.min)}</div>
             </div>
             <div className="stat-item">
               <div className="stat-label">Max</div>
-              <div className="stat-value">{formatStatValue(currentStats.max, settings.unit)}</div>
+              <div className="stat-value">{formatStatValue(currentStats.max)}</div>
             </div>
             <div className="stat-item">
               <div className="stat-label">Avg</div>
-              <div className="stat-value">{formatStatValue(currentStats.avg, settings.unit)}</div>
+              <div className="stat-value">{formatStatValue(currentStats.avg)}</div>
             </div>
             <div className="stat-item">
               <div className="stat-label">Gain</div>
               <div className="stat-value" style={{ color: 'var(--success)' }}>
-                +{formatStatValue(currentStats.totalGain, settings.unit)}
+                +{formatStatValue(currentStats.totalGain)}
               </div>
             </div>
             <div className="stat-item">
               <div className="stat-label">Loss</div>
               <div className="stat-value" style={{ color: 'var(--danger)' }}>
-                -{formatStatValue(currentStats.totalLoss, settings.unit)}
+                -{formatStatValue(currentStats.totalLoss)}
               </div>
             </div>
             <div className="stat-item">
