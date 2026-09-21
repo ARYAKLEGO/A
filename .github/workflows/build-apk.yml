@@ -53,10 +53,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          cmdline-tools-version: "11.0"
-          sdk-platforms: "android-34"
-          sdk-build-tools: "34.0.0"
-          sdk-components: "platform-tools"
+          cmdline-tools-version: "12.0"
+          packages: "platforms;android-34,build-tools;34.0.0,platform-tools"
+          accept-android-sdk-licenses: true
 
       - name: Grant execute permission for gradlew
         working-directory: android
