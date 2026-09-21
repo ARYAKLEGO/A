@@ -41,11 +41,11 @@ jobs:
       - name: Build web app (Vite)
         run: npm run build
 
+      - name: Remove existing Android folder (clean build)
+        run: rm -rf android
+
       - name: Add Android platform (Capacitor)
-        run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+        run: npx cap add android
 
       - name: Sync web assets into Android project
         run: npx cap sync android
