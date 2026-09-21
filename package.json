@@ -1,0 +1,33 @@
+{
+  "name": "elevation-detector",
+  "version": "1.0.0",
+  "description": "Elevation Detector - Detect real elevation of locations with pin-based interaction on free maps",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "framer-motion": "^11.0.0",
+    "leaflet": "^1.9.4",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/leaflet": "^1.9.8",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0",
+    "vite-plugin-singlefile": "^0.13.5",
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17"
+  }
+}
