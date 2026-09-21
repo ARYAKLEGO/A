@@ -61,9 +61,10 @@ jobs:
         working-directory: android
         run: chmod +x gradlew
 
-      - name: Build debug APK
+      - name: Build debug APK with duplicate classes fix
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          ./gradlew assembleDebug --stacktrace -Pandroid.enableJetifier=false -Pandroid.useAndroidX=true
 
       - name: Locate APK
         run: find android/app/build/outputs/apk -name "*.apk"
